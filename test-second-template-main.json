@@ -1,0 +1,197 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "tagValues": {
+      "type": "object",
+      "metadata": {
+        "description": "Tag values for Azure Resources."
+      }
+    },
+    "adminUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "VM Username"
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "VM Password"
+      }
+    },
+    "resourceLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource Location"
+      },
+      "allowedValues": [
+        "Central US",
+        "UK West",
+        "East US",
+        "Southeast Asia"
+      ]
+    },
+    "vmName": {
+      "type": "array",
+      "metadata": {
+        "description": "VM name"
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "metadata": {
+        "description": "Virtual machine size"
+      }
+    },
+    "virtualNetworkName": {
+      "type": "string",
+      "metadata": {
+        "description": "Virtual network name"
+      }
+    },
+    "vnrgname": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": {
+        "description": "VNet resource group name"
+      }
+    },
+    "virtualNetworkSubnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Virtual network subnet name"
+      }
+    },
+    "OSDiskSizeGB": {
+      "type": "int",
+      "metadata": {
+        "description": "OS disk size in gigabytes. Maps to Azure Premium Storage sizes for P10 (128GB), P20 (512GB) and P30 (1023GB)"
+      },
+      "allowedValues": [
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096
+      ],
+      "defaultValue": 128
+    },
+    "DataDisk0SizeGB": {
+      "type": "int",
+      "metadata": {
+        "description": "Data disk size in gigabytes. Maps to Azure Premium Storage sizes for P10 (128GB), P20 (512GB) and P30 (1023GB)"
+      },
+      "allowedValues": [
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096
+      ],
+      "defaultValue": 128
+    },
+    "ManagedImageResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Resource Group containing the Image that instances of the VM will be created from"
+      }
+    },
+    "ManagedImageName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Image that instances of the VM will be created from"
+      }
+    }
+  },
+  "variables": {
+    "vnetId": "[resourceId(parameters ('vnrgname'),'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+    "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('virtualNetworkSubnetName'))]",
+    "managedImageId": "[resourceId(parameters('ManagedImageResourceGroup'), 'Microsoft.Compute/images', parameters('ManagedImageName'))]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('vmName')[copyIndex()],'-NIC1')]",
+      "location": "[parameters('ResourceLocation')]",
+      "copy": {
+        "name": "NICLoop",
+        "count": "[length(parameters('vmName'))]"
+      },
+      "tags": "[parameters('tagValues')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2017-03-30",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('vmName')[copyIndex()])]",
+      "location": "[parameters('resourceLocation')]",
+      "copy": {
+        "name": "VirtualMachineLoop",
+        "count": "[length(parameters('vmName'))]"
+      },
+      "tags": "[parameters('tagValues')]",
+      "dependsOn": [
+        "[concat(parameters('vmName')[copyIndex()],'-NIC1')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('vmName')[copyIndex()])]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[variables('managedImageId')]"
+          },
+          "dataDisks": [
+            {
+              "diskSizeGB": "[parameters('DataDisk0SizeGB')]",
+              "lun": 0,
+              "createOption": "Empty",
+              "Name": "[concat(parameters('vmName')[copyIndex()],'-Data01')]"
+            }
+          ],
+          "osDisk": {
+            "name": "[concat(parameters('vmName')[copyIndex()],'-os')]",
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            },
+            "caching": "None",
+            "createOption": "FromImage",
+            "diskSizeGB": "[parameters('OSDiskSizeGB')]"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName')[copyIndex()],'-NIC1'))]"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

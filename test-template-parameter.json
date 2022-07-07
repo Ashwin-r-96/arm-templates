@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "tagValues": {
+      "value": {
+        "ApplicationName": "F.R.I.E.N.D.S",
+        "Environment": "testing",
+	    "Owner": "ashwin"
+      }
+    },
+    "adminUserName": {
+      "value": "chandler"
+    },
+    "adminPassword": {
+      "value": "Infy12345678"
+    },
+    "resourceLocation": {
+      "value": "UK West"
+    },
+    "vmName": {
+      "value": [
+        "friendsvm1"
+      ]
+    },
+    "vmSize": {
+      "value": "Standard_B1s"
+    },
+    "virtualNetworkName": {
+      "value": "ARM-RG-vnet"
+    },
+    "vnrgname": {
+      "value": "ARM-RG"
+    },
+    "virtualNetworkSubnetName": {
+      "value": "default"
+    },
+    "OSDiskSizeGB": {
+      "value": 128
+    },
+    "DataDisk0SizeGB": {
+      "value": 128
+    },
+    "ManagedImageResourceGroup": {
+      "value": "ARM-RG"
+    },
+    "ManagedImageName": {
+      "value": "mypersonalImage"
+    }
+  }
+}
